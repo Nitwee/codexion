@@ -1,0 +1,82 @@
+#include "codexion.h"
+
+int		simulation_stopped(t_data *data)
+{
+	int data_stop;
+
+	if (pthread_mutex_lock(&data->stop_mutex) != 0)
+		return (-1);
+	data_stop = data->stop;
+	pthread_mutex_unlock(&data->stop_mutex);
+	return (data_stop);
+}
+
+void	stop_simulation(t_data *data)
+{
+	if (pthread_mutex_lock(&data->stop_mutex) != 0)
+		return ;
+	data->stop = 1;
+	pthread_mutex_unlock(&data->stop_mutex);
+}
+
+int		all_coders_done(t_data *data)
+{
+	int	i;
+	int	done;
+
+	done = 0;
+	i = 0;
+	while (i < data->number_of_coders)
+	{
+		if (data->coders[i].compile_count == data->number_of_compiles_required)
+			done++;
+		i++;
+	}
+	if (done == data->number_of_coders)
+		return (1);
+	return (0);
+}
+
+int		has_burnout(t_data *data)
+{
+	int	i;
+	long ts;
+
+	i = 0;
+	while (i < data->number_of_coders)
+	{
+		if (data->coders[i].last_compile_start == 0)
+			ts = get_timestamp(data->start_time);
+		else
+			ts = get_timestamp(data->coders[i].last_compile_start);
+		if (ts > data->time_to_burnout)
+		{
+			log_action(&data->coders[i], "burned out");
+			return (1);
+		}
+		i++;
+	}
+	return (0);
+}
+
+void	*monitor_routine(void *arg)
+{
+	t_data	*data;
+
+	data = (t_data *)arg;
+	while (!simulation_stopped(data))
+	{
+		if (has_burnout(data))
+		{
+			stop_simulation(data);
+			return (NULL);
+		}
+		if (all_coders_done(data))
+		{
+			stop_simulation(data);
+			return (NULL);
+		}
+		usleep(1000);
+	}
+	return (NULL);
+}

@@ -1,0 +1,9 @@
+# Executable
+codexion
+a.out/
+
+# Build files
+*.o
+
+# IDE folders
+.vscode/
