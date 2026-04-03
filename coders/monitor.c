@@ -28,11 +28,11 @@ int		all_coders_done(t_data *data)
 	i = 0;
 	while (i < data->number_of_coders)
 	{
-		if (data->coders[i].compile_count == data->number_of_compiles_required)
+		if (data->coders[i].compile_count >= data->number_of_compiles_required)
 			done++;
 		i++;
 	}
-	if (done == data->number_of_coders)
+	if (done >= data->number_of_coders)
 		return (1);
 	return (0);
 }

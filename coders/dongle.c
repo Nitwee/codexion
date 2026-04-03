@@ -19,13 +19,22 @@ int	handle_single_coder(t_coder *coder)
 {
 	if (pthread_mutex_lock(&coder->left->mutex) != 0)
 		return (0);
+	if (coder->left->taken)
+	{
+		pthread_mutex_unlock(&coder->left->mutex);
+		return (0);
+	}
+	if (coder->left->cooldown_until > get_time_ms())
+	{
+		pthread_mutex_unlock(&coder->left->mutex);
+		return (0);
+	}
 	coder->left->taken = 1;
-	log_action(coder, "has taken a dongle");
 	pthread_mutex_unlock(&coder->left->mutex);
-	return (0); // A REVOIR
+	return (1); // A REVOIR
 }
 
-int	take_first_dongle(t_coder *coder, t_dongle *first)
+int	take_first_dongle(t_dongle *first)
 {
 	if (pthread_mutex_lock(&first->mutex) != 0)
 		return (0);
@@ -34,8 +43,12 @@ int	take_first_dongle(t_coder *coder, t_dongle *first)
 		pthread_mutex_unlock(&first->mutex);
 		return (0);
 	}
+	if (first->cooldown_until > get_time_ms())
+	{
+		pthread_mutex_unlock(&first->mutex);
+		return (0);
+	}
 	first->taken = 1;
-	log_action(coder, "has taken a dongle");
 	return (1);
 }
 
@@ -54,7 +67,15 @@ int	take_second_dongle(t_coder *coder, t_dongle *first, t_dongle *second)
 		pthread_mutex_unlock(&second->mutex);
 		return (0);
 	}
+	if (second->cooldown_until > get_time_ms())
+	{
+		first->taken = 0;
+		pthread_mutex_unlock(&first->mutex);
+		pthread_mutex_unlock(&second->mutex);
+		return (0);
+	}
 	second->taken = 1;
+	log_action(coder, "has taken a dongle");
 	log_action(coder, "has taken a dongle");
 	return (1);
 }
@@ -65,9 +86,13 @@ int	take_dongles(t_coder *coder)
 	t_dongle	*second;
 
 	if (coder->data->number_of_coders == 1)
-		return (handle_single_coder(coder));
+	{
+		if (handle_single_coder(coder))
+			log_action(coder, "has taken a dongle");
+		return (0);
+	}
 	set_dongle_order(coder, &first, &second);
-	if (!take_first_dongle(coder, first))
+	if (!take_first_dongle(first))
 		return (0);
 	if (!take_second_dongle(coder, first, second))
 		return (0);
@@ -78,9 +103,11 @@ int	take_dongles(t_coder *coder)
 void	drop_dongles(t_coder *coder)
 {
 	coder->left->taken = 0;
+	coder->left->cooldown_until = get_time_ms() + coder->data->dongle_cooldown;
 	pthread_mutex_unlock(&coder->left->mutex);
 	if (coder->data->number_of_coders == 1)
 		return;
 	coder->right->taken = 0;
+	coder->right->cooldown_until = get_time_ms() + coder->data->dongle_cooldown;
 	pthread_mutex_unlock(&coder->right->mutex);
 }
