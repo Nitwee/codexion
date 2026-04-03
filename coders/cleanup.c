@@ -10,7 +10,11 @@ void	destroy_data(t_data *data, int param)
 	while (i < data->number_of_coders)
 	{
 		if (data->dongles && i < data->dongles_created)
+		{
 			pthread_mutex_destroy(&data->dongles[i].mutex);
+			pthread_cond_destroy(&data->dongles[i].cond);
+			free(data->dongles[i].heap.reqs);
+		}
 		if (data->coders && i < data->coders_created)
 			pthread_mutex_destroy(&data->coders[i].mutex);
 		i++;

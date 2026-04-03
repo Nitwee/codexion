@@ -13,12 +13,31 @@
 # define EDF 2
 
 typedef struct s_data	t_data;
+typedef struct s_coder	t_coder;
+
+typedef struct s_request
+{
+	t_coder	*coder;
+	long	request_time;
+	long	deadline;
+	long	req_nb;
+}	t_request;
+
+typedef struct s_heap
+{
+	t_request	*reqs;
+	int			size;
+	int			capacity;
+	long		reqs_count;
+}	t_heap;
 
 typedef struct s_dongle
 {
 	pthread_mutex_t	mutex;
+	pthread_cond_t	cond;
 	int				taken;
 	long			cooldown_until;
+	t_heap			heap;
 }	t_dongle;
 
 typedef struct s_coder
@@ -82,5 +101,10 @@ void	ms_sleep(long duration, t_data *data);
 
 int		simulation_stopped(t_data *data);
 void	stop_simulation(t_data *data);
+
+int	edf_swapper(t_heap *heap, int pos);
+int	heap_add(t_heap *heap, t_coder *coder);
+t_request	heap_pop(t_heap *heap, int scheduler);
+
 
 #endif

@@ -100,6 +100,14 @@ int	take_dongles(t_coder *coder)
 }
 
 
+// int	get_dongle(t_coder *coder, t_dongle *dongle)
+// {
+// 	if (pthread_mutex_lock(&dongle->mutex) != 0)
+// 		return (0);
+// 	return (1);
+// }
+
+
 void	drop_dongles(t_coder *coder)
 {
 	coder->left->taken = 0;

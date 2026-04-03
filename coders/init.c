@@ -41,6 +41,17 @@ int		create_coders(t_data *data)
 	return (1);
 }
 
+int		init_heap(t_heap *heap, int capacity)
+{
+	heap->reqs = NULL;
+	heap->reqs = malloc(sizeof(t_request) * capacity);
+	if (!heap->reqs)
+		return (0);
+	heap->size = 0;
+	heap->capacity = capacity;
+	return (1);
+}
+
 int		create_dongles(t_data *data)
 {
 	int	i;
@@ -55,6 +66,11 @@ int		create_dongles(t_data *data)
 		data->dongles[i].cooldown_until = 0;
 		if (pthread_mutex_init(&data->dongles[i].mutex, NULL) != 0)
 			return (0);
+		if (pthread_cond_init(&data->dongles[i].cond, NULL) != 0)
+			return (0);
+		if (!init_heap(&data->dongles[i].heap, data->number_of_coders))
+			return (0);
+
 		data->dongles_created += 1;
 		i++;
 	}
