@@ -14,6 +14,7 @@ SRCS = $(SRC_DIR)/main.c \
 	$(SRC_DIR)/monitor.c \
 	$(SRC_DIR)/log.c \
 	$(SRC_DIR)/time.c \
+	$(SRC_DIR)/heap.c \
 	$(SRC_DIR)/priority_queue.c \
 	$(SRC_DIR)/cleanup.c
 

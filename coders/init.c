@@ -41,14 +41,14 @@ int		create_coders(t_data *data)
 	return (1);
 }
 
-int		init_heap(t_heap *heap, int capacity)
+int	init_heap(t_heap *heap, int capacity)
 {
-	heap->reqs = NULL;
 	heap->reqs = malloc(sizeof(t_request) * capacity);
 	if (!heap->reqs)
 		return (0);
 	heap->size = 0;
 	heap->capacity = capacity;
+	heap->reqs_count = 0;
 	return (1);
 }
 

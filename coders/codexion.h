@@ -75,36 +75,52 @@ typedef struct s_data
 
 
 
-int		parse_args(int argc, char **argv, t_data *data);
+int			parse_args(int argc, char **argv, t_data *data);
+int			check_scheduler(char *arg);
+int			is_valid_number(char *s);
+int			check_numbers(char *s, int p);
+int			check_args(int argc, char **argv, int *parsing_res);
 
+int			init_data(t_data *data);
+void		destroy_data(t_data *data, int param);
+int			create_single_coder(t_data *data, t_coder *coders, int i);
+int			create_coders(t_data *data);
+int			init_heap(t_heap *heap, int capacity);
+int			create_dongles(t_data *data);
 
-int		init_data(t_data *data);
-void	destroy_data(t_data *data, int param);
+void		*coder_routine(void *arg);
+int			create_threads(t_data *data);
+void		coder_action(t_coder *coder, int action);
+void		*monitor_routine(void *arg);
+int			all_coders_done(t_data *data);
+int			has_burnout(t_data *data);
 
+int			coder_in_heap(t_heap *heap, t_coder *coder);
+int			can_take_dongle(t_dongle *dongle, t_coder *coder);
+void		set_dongle_order(t_coder *coder, t_dongle **first,
+				t_dongle **second);
+int			take_dongles(t_coder *coder);
+int			get_dongle(t_coder *coder, t_dongle *dongle);
+int			release_dongle(t_dongle *dongle, t_data *data);
+void		drop_dongles(t_coder *coder);
 
-void	*coder_routine(void *arg);
-int		create_threads(t_data *data);
-void	*monitor_routine(void *arg);
+void		log_action(t_coder *coder, const char *msg);
 
+long		get_time_ms(void);
+void		ms_to_timespec(long ms, struct timespec *ts);
+long		get_timestamp(long start_time);
+void		ms_sleep(long duration, t_data *data);
 
-int		take_dongles(t_coder *coder);
-void	drop_dongles(t_coder *coder);
+int			simulation_stopped(t_data *data);
+void		stop_simulation(t_data *data);
 
-
-void	log_action(t_coder *coder, const char *msg);
-
-
-long	get_time_ms(void);
-long	get_timestamp(long start_time);
-void	ms_sleep(long duration, t_data *data);
-
-
-int		simulation_stopped(t_data *data);
-void	stop_simulation(t_data *data);
-
-int	edf_swapper(t_heap *heap, int pos);
-int	heap_add(t_heap *heap, t_coder *coder);
+int			heap_add(t_heap *heap, t_coder *coder);
+int			remove_from_heap(t_heap *heap, t_coder *coder);
+int			compare_requests(t_request req_1, t_request req_2, int scheduler);
 t_request	heap_pop(t_heap *heap, int scheduler);
+
+void		repair_heap_down(t_heap *heap, int scheduler, int pos);
+void		repair_heap_up(t_heap *heap, int scheduler, int pos);
 
 
 #endif

@@ -1,5 +1,31 @@
 #include "codexion.h"
 
+int	coder_in_heap(t_heap *heap, t_coder *coder)
+{
+	int	i;
+
+	i = 0;
+	while (i < heap->size)
+	{
+		if (heap->reqs[i].coder == coder)
+			return (1);
+		i++;
+	}
+	return (0);
+}
+
+int	can_take_dongle(t_dongle *dongle, t_coder *coder)
+{
+	if (dongle->taken)
+		return (0);
+	if (dongle->cooldown_until > get_time_ms())
+		return (0);
+	if (dongle->heap.size == 0)
+		return (0);
+	if (dongle->heap.reqs[0].coder != coder)
+		return (0);
+	return (1);
+}
 
 void	set_dongle_order(t_coder *coder, t_dongle **first, t_dongle **second)
 {
@@ -15,67 +41,80 @@ void	set_dongle_order(t_coder *coder, t_dongle **first, t_dongle **second)
 	}
 }
 
-int	handle_single_coder(t_coder *coder)
+int	try_get_dongle(t_coder *coder, t_dongle *dongle)
 {
-	if (pthread_mutex_lock(&coder->left->mutex) != 0)
-		return (0);
-	if (coder->left->taken)
-	{
-		pthread_mutex_unlock(&coder->left->mutex);
-		return (0);
-	}
-	if (coder->left->cooldown_until > get_time_ms())
-	{
-		pthread_mutex_unlock(&coder->left->mutex);
-		return (0);
-	}
-	coder->left->taken = 1;
-	pthread_mutex_unlock(&coder->left->mutex);
-	return (1); // A REVOIR
-}
+	int	added;
 
-int	take_first_dongle(t_dongle *first)
-{
-	if (pthread_mutex_lock(&first->mutex) != 0)
+	added = 0;
+	if (pthread_mutex_lock(&dongle->mutex) != 0)
 		return (0);
-	if (first->taken == 1)
+	if (!coder_in_heap(&dongle->heap, coder))
 	{
-		pthread_mutex_unlock(&first->mutex);
+		if (!heap_add(&dongle->heap, coder))
+		{
+			pthread_mutex_unlock(&dongle->mutex);
+			return (0);
+		}
+		added = 1;
+	}
+	if (simulation_stopped(coder->data))
+	{
+		if (added)
+			remove_from_heap(&dongle->heap, coder);
+		pthread_mutex_unlock(&dongle->mutex);
 		return (0);
 	}
-	if (first->cooldown_until > get_time_ms())
+	if (!can_take_dongle(dongle, coder))
 	{
-		pthread_mutex_unlock(&first->mutex);
+		if (added)
+			remove_from_heap(&dongle->heap, coder);
+		pthread_mutex_unlock(&dongle->mutex);
 		return (0);
 	}
-	first->taken = 1;
+	heap_pop(&dongle->heap, coder->data->scheduler);
+	dongle->taken = 1;
+	pthread_mutex_unlock(&dongle->mutex);
+	log_action(coder, "has taken a dongle");
 	return (1);
 }
 
-int	take_second_dongle(t_coder *coder, t_dongle *first, t_dongle *second)
+int	get_dongle(t_coder *coder, t_dongle *dongle)
 {
-	if (pthread_mutex_lock(&second->mutex) != 0)
+	struct	timespec ts;
+	int		added;
+
+	added = 0;
+	if (pthread_mutex_lock(&dongle->mutex) != 0)
+		return (0);
+	if (!coder_in_heap(&dongle->heap, coder))
 	{
-		first->taken = 0;
-		pthread_mutex_unlock(&first->mutex);
+		if (!heap_add(&dongle->heap, coder))
+		{
+			pthread_mutex_unlock(&dongle->mutex);
+			return (0);
+		}
+		added = 1;
+	}
+	while (!simulation_stopped(coder->data) && !can_take_dongle(dongle, coder))
+	{
+		if (dongle->cooldown_until > get_time_ms())
+		{
+			ms_to_timespec(dongle->cooldown_until, &ts);
+			pthread_cond_timedwait(&dongle->cond, &dongle->mutex, &ts);
+		}
+		else
+			pthread_cond_wait(&dongle->cond, &dongle->mutex);
+	}
+	if (simulation_stopped(coder->data))
+	{
+		if (added)
+			remove_from_heap(&dongle->heap, coder);
+		pthread_mutex_unlock(&dongle->mutex);
 		return (0);
 	}
-	if (second->taken == 1)
-	{
-		first->taken = 0;
-		pthread_mutex_unlock(&first->mutex);
-		pthread_mutex_unlock(&second->mutex);
-		return (0);
-	}
-	if (second->cooldown_until > get_time_ms())
-	{
-		first->taken = 0;
-		pthread_mutex_unlock(&first->mutex);
-		pthread_mutex_unlock(&second->mutex);
-		return (0);
-	}
-	second->taken = 1;
-	log_action(coder, "has taken a dongle");
+	heap_pop(&dongle->heap, coder->data->scheduler);
+	dongle->taken = 1;
+	pthread_mutex_unlock(&dongle->mutex);
 	log_action(coder, "has taken a dongle");
 	return (1);
 }
@@ -85,37 +124,33 @@ int	take_dongles(t_coder *coder)
 	t_dongle	*first;
 	t_dongle	*second;
 
-	if (coder->data->number_of_coders == 1)
+	set_dongle_order(coder, &first, &second);
+
+	if (!get_dongle(coder, first))
+		return (0);
+	if (!try_get_dongle(coder, second))
 	{
-		if (handle_single_coder(coder))
-			log_action(coder, "has taken a dongle");
+		release_dongle(first, coder->data);
 		return (0);
 	}
-	set_dongle_order(coder, &first, &second);
-	if (!take_first_dongle(first))
-		return (0);
-	if (!take_second_dongle(coder, first, second))
-		return (0);
 	return (1);
 }
 
-
-// int	get_dongle(t_coder *coder, t_dongle *dongle)
-// {
-// 	if (pthread_mutex_lock(&dongle->mutex) != 0)
-// 		return (0);
-// 	return (1);
-// }
-
+int	release_dongle(t_dongle *dongle, t_data *data)
+{
+	if (pthread_mutex_lock(&dongle->mutex) != 0)
+		return (0);
+	dongle->taken = 0;
+	dongle->cooldown_until = get_time_ms() + data->dongle_cooldown;
+	pthread_cond_broadcast(&dongle->cond);
+	pthread_mutex_unlock(&dongle->mutex);
+	return (1);
+}
 
 void	drop_dongles(t_coder *coder)
 {
-	coder->left->taken = 0;
-	coder->left->cooldown_until = get_time_ms() + coder->data->dongle_cooldown;
-	pthread_mutex_unlock(&coder->left->mutex);
+	release_dongle(coder->left, coder->data);
 	if (coder->data->number_of_coders == 1)
-		return;
-	coder->right->taken = 0;
-	coder->right->cooldown_until = get_time_ms() + coder->data->dongle_cooldown;
-	pthread_mutex_unlock(&coder->right->mutex);
+		return ;
+	release_dongle(coder->right, coder->data);
 }

@@ -1,31 +1,53 @@
 #include "codexion.h"
 
+void	coder_action(t_coder *coder, int action)
+{
+	if (action == 1)
+	{
+		pthread_mutex_lock(&coder->mutex);
+		coder->last_compile_start = get_time_ms();
+		pthread_mutex_unlock(&coder->mutex);
+		log_action(coder, "is compiling");
+		ms_sleep(coder->data->time_to_compile, coder->data);
+		pthread_mutex_lock(&coder->mutex);
+		coder->compile_count++;
+		pthread_mutex_unlock(&coder->mutex);
+		drop_dongles(coder);
+	}
+	else if (action == 2)
+	{
+		log_action(coder, "is debugging");
+		ms_sleep(coder->data->time_to_debug, coder->data);
+	}
+	else if (action == 3)
+	{
+		log_action(coder, "is refactoring");
+		ms_sleep(coder->data->time_to_refactor, coder->data);
+	}
+}
+
 void	*coder_routine(void *arg)
 {
-	t_coder *coder;
+	t_coder	*coder;
+	int		i;
+	int		done;
 
 	coder = (t_coder *)arg;
 	while (!simulation_stopped(coder->data))
 	{
-		while (!simulation_stopped(coder->data) && !take_dongles(coder))
-			ms_sleep(1, coder->data);
-		if (simulation_stopped(coder->data))
-			return (NULL);
-		coder->last_compile_start = get_time_ms();
-		log_action(coder, "is compiling");
-		ms_sleep(coder->data->time_to_compile, coder->data);
-		coder->compile_count++;
-		drop_dongles(coder);
-		if (simulation_stopped(coder->data))
-			return (NULL);
-		log_action(coder, "is debugging");
-		ms_sleep(coder->data->time_to_debug, coder->data);
-		if (simulation_stopped(coder->data))
-			return (NULL);
-		log_action(coder, "is refactoring");
-		ms_sleep(coder->data->time_to_refactor, coder->data);
-		if (simulation_stopped(coder->data))
-			return (NULL);
+		pthread_mutex_lock(&coder->mutex);
+		done = (coder->compile_count >= coder->data->number_of_compiles_required);
+		pthread_mutex_unlock(&coder->mutex);
+		if (done)
+			break ;
+		if (!take_dongles(coder))
+			break ;
+		i = 1;
+		while (i < 4 && !simulation_stopped(coder->data))
+		{
+			coder_action(coder, i);
+			i++;
+		}
 	}
 	return (NULL);
 }
