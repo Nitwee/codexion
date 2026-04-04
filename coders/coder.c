@@ -14,12 +14,12 @@ void	coder_action(t_coder *coder, int action)
 		pthread_mutex_unlock(&coder->mutex);
 		drop_dongles(coder);
 	}
-	else if (action == 2)
+	else if (action == 2 && coder->compile_count < coder->data->number_of_compiles_required)
 	{
 		log_action(coder, "is debugging");
 		ms_sleep(coder->data->time_to_debug, coder->data);
 	}
-	else if (action == 3)
+	else if (action == 3 && coder->compile_count < coder->data->number_of_compiles_required)
 	{
 		log_action(coder, "is refactoring");
 		ms_sleep(coder->data->time_to_refactor, coder->data);

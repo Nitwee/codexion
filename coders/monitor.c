@@ -63,7 +63,7 @@ int		has_burnout(t_data *data)
 			ts = get_timestamp(data->start_time);
 		else
 			ts = get_timestamp(data->coders[i].last_compile_start);
-		if (ts > data->time_to_burnout)
+		if (ts > data->time_to_burnout && data->coders[i].compile_count < data->number_of_compiles_required)
 		{
 			log_action(&data->coders[i], "burned out");
 			pthread_mutex_unlock(&data->coders[i].mutex);
