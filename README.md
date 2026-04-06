@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by qrios.*
+*This project has been created as part of the 42 curriculum by qrios*
 
 # Codexion
 
@@ -28,8 +28,7 @@ make
 ### Run
 
 ```sh
-./codexion number_of_coders time_to_burnout time_to_compile time_to_debug \
-	time_to_refactor number_of_compiles_required dongle_cooldown scheduler
+./codexion number_of_coders time_to_burnout time_to_compile time_to_debug time_to_refactor number_of_compiles_required dongle_cooldown scheduler
 ```
 
 Example:
@@ -53,29 +52,54 @@ Arguments:
 
 Useful references:
 
-- POSIX threads manual pages: `pthread_create`, `pthread_mutex_lock`,
+- man pages: `pthread_create`, `pthread_mutex_lock`,
   `pthread_cond_wait`, `pthread_cond_timedwait`
+- `pthread_join`, `pthread_mutex_unlock`, `pthread_cond_broadcast`
+- https://www.geeksforgeeks.org/c/thread-functions-in-c-c/
+- https://franckh.developpez.com/tutoriels/posix/pthreads/
+- https://www.geeksforgeeks.org/c/multithreading-in-c/
+- https://www.youtube.com/watch?v=qPhP86HIXgg (& part 2)
+- https://stackoverflow.com/questions/35061854/creating-multiple-threads-in-c
+
 - `gettimeofday(2)` and `usleep(3)`
-- Priority queue / binary heap documentation
+
+- Priority queue / binary heap documentation:
+- https://www.geeksforgeeks.org/dsa/binary-heap/
+- https://www.youtube.com/watch?v=AE5I0xACpZs
+- https://brilliant.org/wiki/binary-heap/
+- https://chgi.developpez.com/arbre/binaire/
 - The Codexion subject PDF
 
 AI usage:
 
-AI was used as a support tool for review, debugging, and documentation drafting.
-All final code and explanations were manually checked and adjusted.
+AI was used as a support tool for:
+
+- reviewing synchronization logic and edge cases
+- checking expected behavior on burnout and scheduling cases
+- improving documentation wording and structure
+
+All code was manually typed, tested, and adjusted before being kept in the
+project.
 
 ## Blocking Cases Handled
 
 - Deadlock prevention: coder 1 does not take dongles in the same order as the
-  others, which breaks the circular wait condition.
+  others, which breaks the circular wait condition and avoids one of Coffman's
+  deadlock conditions.
 - Fair access to a dongle: each dongle maintains a waiting queue managed by a
   heap and ordered with the selected scheduler.
+- Starvation prevention on feasible inputs: coders do not race blindly for a
+  free dongle, because requests are arbitrated by FIFO or EDF through the heap.
 - Cooldown enforcement: a released dongle cannot be taken again before
   `dongle_cooldown` milliseconds.
 - Burnout detection: a dedicated monitor thread checks deadlines and stops the
   simulation when a coder burns out.
+- Precise burnout logging: the monitor checks deadlines continuously so the
+  burnout message is printed as close as possible to the real burnout moment.
+- Log serialization: a dedicated print mutex prevents two messages from being
+  mixed on the same line.
 - Single coder case: the single coder can only take one dongle, waits, and then
-  burns out as expected.
+  burns out as expected because it needs 2 dongles to compile (according to the subject).
 
 ## Thread Synchronization Mechanisms
 
@@ -83,5 +107,12 @@ All final code and explanations were manually checked and adjusted.
 - One `pthread_cond_t` per dongle wakes waiting coders when the dongle becomes
   available again or when the simulation stops.
 - One mutex per coder protects `compile_count` and `last_compile_start`.
-- `stop_mutex` protects the global stop flag.
+  This prevents races between a coder thread updating its state and the monitor
+  reading the same state to detect burnout or completion.
+- `stop_mutex` protects the global stop flag and allows safe communication
+  between the monitor thread and all coder threads.
 - `print_mutex` serializes logs so lines are not interleaved.
+  This avoids mixed output when several coders change state at the same time.
+- `pthread_cond_t` on each dongle is used for thread-safe waiting.
+  A coder sleeps while a dongle is unavailable or cooling down, and wakes up
+  when a release or a simulation stop occurs.

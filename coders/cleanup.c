@@ -6,7 +6,7 @@ void	destroy_data(t_data *data, int param)
 
 	i = 0;
 	if (!data)
-		return;
+		return ;
 	while (i < data->number_of_coders)
 	{
 		if (data->dongles && i < data->dongles_created)
@@ -23,7 +23,6 @@ void	destroy_data(t_data *data, int param)
 		pthread_mutex_destroy(&data->stop_mutex);
 	if (param > 2)
 		pthread_mutex_destroy(&data->print_mutex);
-	
 	if (data->dongles)
 		free(data->dongles);
 	if (data->coders)

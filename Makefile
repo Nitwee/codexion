@@ -1,7 +1,7 @@
 NAME = codexion
 
 CC = cc
-CFLAGS = -Wall -Wextra -Werror -pthread -I coders
+CFLAGS = -Wall -Wextra -Werror -pthread
 RM = rm -f
 
 SRC_DIR = coders
@@ -9,8 +9,10 @@ SRC_DIR = coders
 SRCS = $(SRC_DIR)/main.c \
 	$(SRC_DIR)/parse.c \
 	$(SRC_DIR)/init.c \
+	$(SRC_DIR)/init_utils.c \
 	$(SRC_DIR)/coder.c \
 	$(SRC_DIR)/dongle.c \
+	$(SRC_DIR)/dongle_utils.c \
 	$(SRC_DIR)/monitor.c \
 	$(SRC_DIR)/log.c \
 	$(SRC_DIR)/time.c \

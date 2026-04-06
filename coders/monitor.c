@@ -1,8 +1,8 @@
 #include "codexion.h"
 
-int		simulation_stopped(t_data *data)
+int	simulation_stopped(t_data *data)
 {
-	int data_stop;
+	int	data_stop;
 
 	if (pthread_mutex_lock(&data->stop_mutex) != 0)
 		return (0);
@@ -20,7 +20,6 @@ void	stop_simulation(t_data *data)
 		return ;
 	data->stop = 1;
 	pthread_mutex_unlock(&data->stop_mutex);
-
 	while (i < data->number_of_coders)
 	{
 		pthread_mutex_lock(&data->dongles[i].mutex);
@@ -30,7 +29,7 @@ void	stop_simulation(t_data *data)
 	}
 }
 
-int		all_coders_done(t_data *data)
+int	all_coders_done(t_data *data)
 {
 	int	i;
 	int	done;
@@ -50,12 +49,14 @@ int		all_coders_done(t_data *data)
 	return (0);
 }
 
-int		has_burnout(t_data *data)
+int	has_burnout(t_data *data)
 {
-	int	i;
-	long ts;
+	int		i;
+	long	ts;
+	int		comp_req;
 
 	i = 0;
+	comp_req = data->number_of_compiles_required;
 	while (i < data->number_of_coders)
 	{
 		pthread_mutex_lock(&data->coders[i].mutex);
@@ -63,7 +64,8 @@ int		has_burnout(t_data *data)
 			ts = get_timestamp(data->start_time);
 		else
 			ts = get_timestamp(data->coders[i].last_compile_start);
-		if (ts > data->time_to_burnout && data->coders[i].compile_count < data->number_of_compiles_required)
+		if (ts > data->time_to_burnout
+			&& data->coders[i].compile_count < comp_req)
 		{
 			log_action(&data->coders[i], "burned out");
 			pthread_mutex_unlock(&data->coders[i].mutex);

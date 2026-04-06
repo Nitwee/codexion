@@ -73,8 +73,6 @@ typedef struct s_data
 	t_dongle		*dongles;
 }	t_data;
 
-
-
 int			parse_args(int argc, char **argv, t_data *data);
 int			check_scheduler(char *arg);
 int			is_valid_number(char *s);
@@ -82,12 +80,15 @@ int			check_numbers(char *s, int p);
 int			check_args(int argc, char **argv, int *parsing_res);
 
 int			init_data(t_data *data);
+void		define_base_data(t_data *data);
 void		destroy_data(t_data *data, int param);
 int			create_single_coder(t_data *data, t_coder *coders, int i);
 int			create_coders(t_data *data);
 int			init_heap(t_heap *heap, int capacity);
 int			create_dongles(t_data *data);
 
+int			get_compile_count(t_coder *coder);
+long		get_last_compile_start(t_coder *coder);
 void		*coder_routine(void *arg);
 int			create_threads(t_data *data);
 void		coder_action(t_coder *coder, int action);
@@ -95,6 +96,8 @@ void		*monitor_routine(void *arg);
 int			all_coders_done(t_data *data);
 int			has_burnout(t_data *data);
 
+int			check_add_heap(t_coder *coder, t_dongle *dongle, int *added);
+int			check_end_dongle(t_coder *coder, t_dongle *dongle, int added);
 int			coder_in_heap(t_heap *heap, t_coder *coder);
 int			can_take_dongle(t_dongle *dongle, t_coder *coder);
 void		set_dongle_order(t_coder *coder, t_dongle **first,
@@ -121,6 +124,5 @@ t_request	heap_pop(t_heap *heap, int scheduler);
 
 void		repair_heap_down(t_heap *heap, int scheduler, int pos);
 void		repair_heap_up(t_heap *heap, int scheduler, int pos);
-
 
 #endif

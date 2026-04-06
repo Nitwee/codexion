@@ -1,6 +1,5 @@
 #include "codexion.h"
 
-
 void	log_action(t_coder *coder, const char *msg)
 {
 	long	time;

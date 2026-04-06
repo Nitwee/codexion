@@ -14,7 +14,6 @@ int	main(int argc, char **argv)
 		destroy_data(&data, 3);
 		return (1);
 	}
-
 	destroy_data(&data, 3);
 	return (0);
 }
